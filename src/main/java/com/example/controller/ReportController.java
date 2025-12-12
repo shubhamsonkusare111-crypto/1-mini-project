@@ -1,6 +1,7 @@
 package com.example.controller;
 
 import java.util.List;
+import jakarta.servlet.http.HttpServletResponse;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -12,39 +13,43 @@ import com.example.entity.CitizenPlan;
 import com.example.request.SearchRequest;
 import com.example.service.ReportService;
 
-
-
-
 @Controller
 public class ReportController {
 
-    @Autowired
-    private ReportService service;
-    
-    @PostMapping("/search")
-    public String handleSearch(SearchRequest request, Model model)
-    {
-    	System.out.println(request);
-    	List<CitizenPlan> plans = service.search(request);
-    	model.addAttribute("plans", plans);
-    	
-    	 init(model);
-    	 
-    	return "index";
-    }
+	@Autowired
+	private ReportService service;
+	@GetMapping("/excel")
+	public void excelExport(HttpServletResponse response) throws Exception {
 
-    @GetMapping("/")
-    public String indexPage(Model model) {
+	    response.setContentType("application/octet-stream");
+	    response.setHeader("Content-Disposition", "attachment; filename=plans.xls");
 
-       
-        init(model);
-        
-        return "index";
-    }
+	    service.exportExcel(response);
+	}
+
+
+	@PostMapping("/search")
+	public String handleSearch(SearchRequest request, Model model) {
+		System.out.println(request);
+		List<CitizenPlan> plans = service.search(request);
+		model.addAttribute("plans", plans);
+
+		init(model);
+
+		return "index";
+	}
+
+	@GetMapping("/")
+	public String indexPage(Model model) {
+
+		init(model);
+
+		return "index";
+	}
 
 	private void init(Model model) {
-		 model.addAttribute("search", new SearchRequest());
-		model.addAttribute("names",service.getPlanNames());
-        model.addAttribute("status", service.getPlanStatuses());
+		model.addAttribute("search", new SearchRequest());
+		model.addAttribute("names", service.getPlanNames());
+		model.addAttribute("status", service.getPlanStatuses());
 	}
-    }
+}
