@@ -18,24 +18,15 @@ public class ReportController {
 
 	@Autowired
 	private ReportService service;
-
-	@GetMapping("/pdf")
-	public void pdfExport(HttpServletResponse response) throws Exception {
-
-		response.setContentType("application/pdf");
-		response.setHeader("Content-Disposition", "attachment; filename=plans.pdf");
-
-		service.exportPdf(response);
-	}
-
 	@GetMapping("/excel")
 	public void excelExport(HttpServletResponse response) throws Exception {
 
-		response.setContentType("application/octet-stream");
-		response.setHeader("Content-Disposition", "attachment; filename=plans.xls");
+	    response.setContentType("application/octet-stream");
+	    response.setHeader("Content-Disposition", "attachment; filename=plans.xls");
 
-		service.exportExcel(response);
+	    service.exportExcel(response);
 	}
+
 
 	@PostMapping("/search")
 	public String handleSearch(SearchRequest request, Model model) {
