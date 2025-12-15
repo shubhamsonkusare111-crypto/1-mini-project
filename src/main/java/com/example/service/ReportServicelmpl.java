@@ -1,14 +1,10 @@
 package com.example.service;
 
+import java.io.File;
 import java.time.LocalDate;
 
 import java.time.format.DateTimeFormatter;
 import java.util.List;
-import org.apache.poi.hssf.usermodel.HSSFWorkbook; // For XLS (HSSFWorkbook)
-import org.apache.poi.ss.usermodel.Workbook; // Common interface for HSSFWorkbook/XSSFWorkbook
-import org.apache.poi.ss.usermodel.Sheet; // Represents a sheet
-import org.apache.poi.ss.usermodel.Row; // Represents a row in a sheet
-import org.apache.poi.ss.usermodel.Cell; // Represents a cell in a row
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Example;
@@ -17,8 +13,10 @@ import org.springframework.stereotype.Service;
 import com.example.entity.CitizenPlan;
 import com.example.repo.CitizenPlanRepository;
 import com.example.request.SearchRequest;
+import com.example.util.EmailUtils;
+import com.example.util.ExcelGenerator;
+import com.example.util.PdfGenerator;
 
-import jakarta.servlet.ServletOutputStream;
 import jakarta.servlet.http.HttpServletResponse;
 
 @Service
@@ -26,6 +24,17 @@ public class ReportServicelmpl implements ReportService {
 
 	@Autowired
 	private CitizenPlanRepository planRepo;
+
+	@Autowired
+	private PdfGenerator pdfgenerator;
+	
+	@Autowired
+	private EmailUtils emailUtils;
+
+	@Autowired
+	private ExcelGenerator excelGenerator;
+
+	
 
 	@Override
 	public List<String> getPlanNames() {
@@ -75,60 +84,37 @@ public class ReportServicelmpl implements ReportService {
 
 	@Override
 	public boolean exportExcel(HttpServletResponse response) throws Exception {
-		Workbook workbook = new HSSFWorkbook();
-		Sheet sheet = workbook.createSheet("plans-data");
 
-		// Create headers
-		Row headerRow = sheet.createRow(0);
-		headerRow.createCell(0).setCellValue("ID");
-		headerRow.createCell(1).setCellValue("Citizen Name");
-		headerRow.createCell(2).setCellValue("Plan Name");
-		headerRow.createCell(3).setCellValue("Plan Status");
-		headerRow.createCell(4).setCellValue("Plan Start Date");
-		headerRow.createCell(5).setCellValue("Plan End Date");
-		headerRow.createCell(6).setCellValue("Benefit Amt");
+		 File f=new File("Plans.xls");
+	    List<CitizenPlan> plans = planRepo.findAll();
+	    excelGenerator.generate(response, plans, f);
+	    String subject = "Test mail subject";
+	    String body = "<h1> Test mail body</h1>";
+	    String to = "shubhamsonkusare0803@gmail.com";
+	    emailUtils.sendEmail(subject, body, to,f);
+	    f.delete();
 
-		// Fetch data
-		List<CitizenPlan> records = planRepo.findAll();
-		int dataRowIndex = 1;
-		for (CitizenPlan plan : records) {
-			Row dataRow = sheet.createRow(dataRowIndex);
-			dataRow.createCell(0).setCellValue(plan.getCitizenId());
-			dataRow.createCell(1).setCellValue(plan.getCitizenName());
-			dataRow.createCell(2).setCellValue(plan.getPlanName());
-			dataRow.createCell(3).setCellValue(plan.getPlanStatus());
-
-			if (null != plan.getPlanStartDate()) {
-				dataRow.createCell(4).setCellValue(plan.getPlanStartDate() + "");
-			} else {
-				dataRow.createCell(4).setCellValue("N/A");
-			}
-			if (null != plan.getPlanEndDate()) {
-				dataRow.createCell(5).setCellValue(plan.getPlanEndDate() + "");
-			} else {
-				dataRow.createCell(5).setCellValue("N/A");
-			}
-
-			if (null != plan.getBenefitAmt()) {
-				dataRow.createCell(6).setCellValue(plan.getBenefitAmt());
-			} else {
-				dataRow.createCell(6).setCellValue("N/A");
-			}
-			dataRowIndex++;
-		}
-
-		// Write to response
-		ServletOutputStream outputStream = response.getOutputStream();
-		workbook.write(outputStream);
-		workbook.close();
-
-		return true; // Indicate success
+	    return true;
 	}
 
 	@Override
-	public boolean exportPdf() {
-		// TODO Auto-generated method stub
-		return false;
-	}
+	public boolean exportPdf(HttpServletResponse response) throws Exception {
 
+	    File f = new File("Plans.pdf");
+	    List<CitizenPlan> plans = planRepo.findAll();
+
+	    // 1️⃣ FIRST generate PDF file
+	    pdfgenerator.generator(response, plans, f);
+
+	    // 2️⃣ THEN send email
+	    String subject = "Test mail subject";
+	    String body = "<h1> Test mail body</h1>";
+	    String to = "shubhamsonkusare0803@gmail.com";
+	    emailUtils.sendEmail(subject, body, to, f);
+
+	    // 3️⃣ Delete file after sending
+	    f.delete();
+
+	    return true;
+	}
 }
